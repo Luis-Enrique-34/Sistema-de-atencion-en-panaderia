@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Clientes')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: navbar('clientes')}"></nav>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h4 mb-0">Clientes</h1>
+    <a class="btn btn-success" th:href="@{/clientes/nuevo}">+ Nuevo cliente</a>
+  </div>
+  <th:block th:replace="~{fragments/layout :: alertas}"></th:block>
+
+  <form class="d-flex gap-2 mb-3" th:action="@{/clientes}" method="get">
+    <input class="form-control" type="search" name="buscar" th:value="${buscar}" placeholder="Buscar por nombre o DNI...">
+    <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+  </form>
+
+  <div class="table-responsive bg-white shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>ID</th><th>Nombre</th><th>DNI</th><th>Celular</th><th>Dirección</th><th class="text-center">Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr th:each="c : ${clientes}">
+          <td th:text="${c.id}"></td>
+          <td class="fw-semibold" th:text="${c.nombre}"></td>
+          <td th:text="${c.dni}"></td>
+          <td th:text="${c.telefono} ?: '—'"></td>
+          <td th:text="${c.direccion} ?: '—'"></td>
+          <td class="text-center text-nowrap">
+            <a class="btn btn-sm btn-warning" th:href="@{/pedidos/nuevo(clienteId=${c.id})}">Generar orden</a>
+            <a class="btn btn-sm btn-primary" th:href="@{/clientes/editar/{id}(id=${c.id})}">Editar</a>
+            <form class="d-inline" method="post" th:action="@{/clientes/eliminar/{id}(id=${c.id})}"
+                  onsubmit="return confirm('¿Eliminar este cliente?');">
+              <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(clientes)}"><td colspan="6" class="text-center text-muted py-4">No hay clientes.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

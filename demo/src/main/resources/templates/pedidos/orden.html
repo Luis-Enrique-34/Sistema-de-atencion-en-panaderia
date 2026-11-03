@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Orden de pedido')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: navbar('pedidos')}"></nav>
+<main class="container py-4" style="max-width:720px">
+  <th:block th:replace="~{fragments/layout :: alertas}"></th:block>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <div class="h4 mb-0">🥖 Panadería El Buen Pan</div>
+          <div class="text-muted small">Orden de pedido</div>
+        </div>
+        <div class="text-end">
+          <div class="h5 mb-1" th:text="'N° ' + ${#numbers.formatInteger(p.id, 5)}"></div>
+          <span class="badge" th:classappend="'text-bg-' + ${p.estado.color}" th:text="${p.estado}"></span>
+        </div>
+      </div>
+
+      <div class="row small mb-3">
+        <div class="col-sm-6">
+          <div><strong>Cliente:</strong> <span th:text="${p.cliente.nombre}"></span></div>
+          <div><strong>DNI:</strong> <span th:text="${p.cliente.dni}"></span></div>
+          <div th:if="${p.cliente.telefono}"><strong>Celular:</strong> <span th:text="${p.cliente.telefono}"></span></div>
+        </div>
+        <div class="col-sm-6 text-sm-end">
+          <div><strong>Fecha:</strong> <span th:text="${#temporals.format(p.fecha, 'dd/MM/yyyy HH:mm')}"></span></div>
+          <div th:if="${p.cliente.direccion}"><strong>Dirección:</strong> <span th:text="${p.cliente.direccion}"></span></div>
+        </div>
+      </div>
+
+      <table class="table table-bordered mb-2">
+        <thead class="table-light"><tr><th>Producto</th><th class="text-end">Cant.</th><th class="text-end">P. unit.</th><th class="text-end">Importe</th></tr></thead>
+        <tbody>
+          <tr>
+            <td th:text="${p.producto.nombre}"></td>
+            <td class="text-end" th:text="${p.cantidad}"></td>
+            <td class="text-end" th:text="'S/ ' + ${#numbers.formatDecimal(p.precioUnitario, 1, 2, 'POINT')}"></td>
+            <td class="text-end" th:text="'S/ ' + ${#numbers.formatDecimal(p.total, 1, 2, 'POINT')}"></td>
+          </tr>
+        </tbody>
+        <tfoot><tr><th colspan="3" class="text-end">TOTAL</th>
+          <th class="text-end fs-5" th:text="'S/ ' + ${#numbers.formatDecimal(p.total, 1, 2, 'POINT')}"></th></tr></tfoot>
+      </table>
+      <p class="small text-muted mb-0" th:if="${p.observacion}" th:text="'Observación: ' + ${p.observacion}"></p>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mt-3 no-print">
+    <button class="btn btn-dark" type="button" onclick="window.print()">Imprimir</button>
+    <th:block th:if="${p.pendiente}">
+      <a class="btn btn-primary" th:href="@{/pedidos/editar/{id}(id=${p.id})}">Editar</a>
+      <form method="post" th:action="@{/pedidos/{id}/entregar(id=${p.id})}">
+        <button class="btn btn-success" type="submit">Marcar entregado</button>
+      </form>
+      <form method="post" th:action="@{/pedidos/{id}/anular(id=${p.id})}"
+            onsubmit="return confirm('¿Anular este pedido? Se devolverá el stock.');">
+        <button class="btn btn-secondary" type="submit">Anular</button>
+      </form>
+    </th:block>
+    <a class="btn btn-outline-secondary ms-auto" th:href="@{/pedidos}">Volver a pedidos</a>
+  </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

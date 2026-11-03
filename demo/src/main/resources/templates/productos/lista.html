@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Productos')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: navbar('productos')}"></nav>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h4 mb-0">Productos</h1>
+    <a class="btn btn-success" th:href="@{/productos/nuevo}">+ Nuevo producto</a>
+  </div>
+  <th:block th:replace="~{fragments/layout :: alertas}"></th:block>
+
+  <form class="d-flex gap-2 mb-3" th:action="@{/productos}" method="get">
+    <input class="form-control" type="search" name="buscar" th:value="${buscar}" placeholder="Buscar por nombre...">
+    <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+  </form>
+
+  <div class="table-responsive bg-white shadow-sm rounded">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>ID</th><th>Nombre</th><th>Categoría</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-center">Acciones</th></tr>
+      </thead>
+      <tbody>
+        <tr th:each="p : ${productos}">
+          <td th:text="${p.id}"></td>
+          <td>
+            <span class="fw-semibold" th:text="${p.nombre}"></span>
+            <div class="small text-muted" th:if="${p.descripcion}" th:text="${p.descripcion}"></div>
+          </td>
+          <td><span class="badge text-bg-secondary" th:text="${p.categoria}"></span></td>
+          <td class="text-end" th:text="'S/ ' + ${#numbers.formatDecimal(p.precio, 1, 2, 'POINT')}"></td>
+          <td class="text-end"><span th:text="${p.stock}" th:classappend="${p.stock < 10} ? 'text-danger fw-bold'"></span></td>
+          <td class="text-center text-nowrap">
+            <a class="btn btn-sm btn-warning" th:href="@{/pedidos/nuevo(productoId=${p.id})}"
+               th:classappend="${p.stock == 0} ? 'disabled'">Ordenar</a>
+            <a class="btn btn-sm btn-primary" th:href="@{/productos/editar/{id}(id=${p.id})}">Editar</a>
+            <form class="d-inline" method="post" th:action="@{/productos/eliminar/{id}(id=${p.id})}"
+                  onsubmit="return confirm('¿Eliminar este producto?');">
+              <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(productos)}"><td colspan="6" class="text-center text-muted py-4">No hay productos.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

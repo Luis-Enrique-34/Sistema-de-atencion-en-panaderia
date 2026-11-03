@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Orden')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: navbar('pedidos')}"></nav>
+<main class="container py-4" style="max-width:680px">
+  <h1 class="h4 mb-3" th:text="${pedido.id == null} ? 'Generar orden' : 'Editar orden N° ' + ${pedido.id}">Orden</h1>
+
+  <form class="card card-body shadow-sm" th:action="@{/pedidos/guardar}" th:object="${pedido}" method="post" novalidate>
+    <div class="alert alert-danger" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+    <input type="hidden" th:field="*{id}">
+
+    <div class="mb-3">
+      <label class="form-label" for="clienteId">Cliente</label>
+      <div class="input-group has-validation">
+        <select class="form-select" th:field="*{clienteId}" th:errorclass="is-invalid">
+          <option value="">-- Selecciona un cliente --</option>
+          <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nombre} + ' — DNI ' + ${c.dni}"></option>
+        </select>
+        <a class="btn btn-outline-secondary" th:href="@{/clientes/nuevo}">+ Nuevo</a>
+        <div class="invalid-feedback" th:errors="*{clienteId}"></div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="productoId">Producto</label>
+      <select class="form-select" th:field="*{productoId}" th:errorclass="is-invalid">
+        <option value="" data-precio="0">-- Selecciona un producto --</option>
+        <option th:each="p : ${productos}" th:value="${p.id}" th:attr="data-precio=${p.precio}"
+                th:text="${p.nombre} + ' — S/ ' + ${#numbers.formatDecimal(p.precio, 1, 2, 'POINT')} + ' (stock: ' + ${p.stock} + ')'"></option>
+      </select>
+      <div class="invalid-feedback" th:errors="*{productoId}"></div>
+    </div>
+
+    <div class="row align-items-end">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="cantidad">Cantidad</label>
+        <input class="form-control" type="number" min="1" max="1000" step="1" th:field="*{cantidad}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{cantidad}"></div>
+      </div>
+      <div class="col-sm-6 mb-3">
+        <div class="form-label">Total estimado</div>
+        <div class="fs-4 fw-bold text-success" id="total">S/ 0.00</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="observacion">Observación (opcional)</label>
+      <input class="form-control" type="text" maxlength="255" th:field="*{observacion}" th:errorclass="is-invalid"
+             placeholder="Ej.: recoger a las 6 p. m.">
+      <div class="invalid-feedback" th:errors="*{observacion}"></div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-success" type="submit" th:text="${pedido.id == null} ? 'Generar orden' : 'Guardar cambios'">Guardar</button>
+      <a class="btn btn-outline-secondary" th:href="@{/pedidos}">Cancelar</a>
+    </div>
+  </form>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script>
+  // Calcula el total en pantalla (el total real lo calcula el servidor)
+  const prod = document.getElementById('productoId');
+  const cant = document.getElementById('cantidad');
+  const total = document.getElementById('total');
+  function calcular() {
+    const precio = parseFloat(prod.selectedOptions[0]?.dataset.precio || 0);
+    const c = parseInt(cant.value || 0, 10);
+    total.textContent = 'S/ ' + (precio * (c > 0 ? c : 0)).toFixed(2);
+  }
+  prod.addEventListener('change', calcular);
+  cant.addEventListener('input', calcular);
+  calcular();
+</script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Producto')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: navbar('productos')}"></nav>
+<main class="container py-4" style="max-width:640px">
+  <h1 class="h4 mb-3" th:text="${producto.id == null} ? 'Nuevo producto' : 'Editar producto'">Producto</h1>
+
+  <form class="card card-body shadow-sm" th:action="@{/productos/guardar}" th:object="${producto}" method="post" novalidate>
+    <input type="hidden" th:field="*{id}">
+    <div class="mb-3">
+      <label class="form-label" for="nombre">Nombre</label>
+      <input class="form-control" type="text" th:field="*{nombre}" maxlength="80" th:errorclass="is-invalid">
+      <div class="invalid-feedback" th:errors="*{nombre}"></div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="categoria">Categoría</label>
+      <select class="form-select" th:field="*{categoria}" th:errorclass="is-invalid">
+        <option value="">-- Selecciona --</option>
+        <option th:each="c : ${categorias}" th:value="${c}" th:text="${c}"></option>
+      </select>
+      <div class="invalid-feedback" th:errors="*{categoria}"></div>
+    </div>
+    <div class="row">
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="precio">Precio (S/)</label>
+        <input class="form-control" type="number" step="0.01" min="0.10" th:field="*{precio}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{precio}"></div>
+      </div>
+      <div class="col-sm-6 mb-3">
+        <label class="form-label" for="stock">Stock</label>
+        <input class="form-control" type="number" step="1" min="0" th:field="*{stock}" th:errorclass="is-invalid">
+        <div class="invalid-feedback" th:errors="*{stock}"></div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="descripcion">Descripción (opcional)</label>
+      <textarea class="form-control" rows="2" maxlength="255" th:field="*{descripcion}" th:errorclass="is-invalid"></textarea>
+      <div class="invalid-feedback" th:errors="*{descripcion}"></div>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-success" type="submit">Guardar</button>
+      <a class="btn btn-outline-secondary" th:href="@{/productos}">Cancelar</a>
+    </div>
+  </form>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
