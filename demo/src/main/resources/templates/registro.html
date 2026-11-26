@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Crear cuenta')}"></head>
+<body>
+<main class="container py-5" style="max-width: 560px">
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-1">Crear cuenta de cliente</h1>
+            <p class="text-muted small">Regístrate para hacer tus pedidos de pan.</p>
+
+            <form th:action="@{/registro}" th:object="${usuario}" method="post" novalidate>
+                <div class="mb-3">
+                    <label class="form-label" for="nombre">Nombre completo</label>
+                    <input class="form-control" type="text" th:field="*{nombre}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{nombre}"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="correo">Correo</label>
+                    <input class="form-control" type="email" th:field="*{correo}" th:errorclass="is-invalid">
+                    <div class="invalid-feedback" th:errors="*{correo}"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label" for="password">Contraseña</label>
+                        <input class="form-control" type="password" th:field="*{password}" th:errorclass="is-invalid">
+                        <div class="invalid-feedback" th:errors="*{password}"></div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label" for="confirmar">Repite la contraseña</label>
+                        <input class="form-control" type="password" id="confirmar" name="confirmar">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label" for="telefono">Celular (opcional)</label>
+                        <input class="form-control" type="tel" maxlength="9" th:field="*{telefono}" th:errorclass="is-invalid">
+                        <div class="invalid-feedback" th:errors="*{telefono}"></div>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <label class="form-label" for="direccion">Dirección (opcional)</label>
+                        <input class="form-control" type="text" th:field="*{direccion}" th:errorclass="is-invalid">
+                        <div class="invalid-feedback" th:errors="*{direccion}"></div>
+                    </div>
+                </div>
+                <button class="btn btn-pan w-100" type="submit">Crear cuenta</button>
+            </form>
+            <p class="text-center small mt-3 mb-0"><a th:href="@{/login}">Ya tengo cuenta</a></p>
+        </div>
+    </div>
+</main>
+</body>
+</html>

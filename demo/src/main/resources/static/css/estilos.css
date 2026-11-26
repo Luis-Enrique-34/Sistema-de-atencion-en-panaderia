@@ -1,0 +1,41 @@
+:root {
+    --pan-cafe: #7b4a1e;
+    --pan-crema: #fbf6ef;
+}
+
+body {
+    background: var(--pan-crema);
+}
+
+.navbar-pan {
+    background: var(--pan-cafe);
+}
+
+.btn-pan {
+    background: var(--pan-cafe);
+    border-color: var(--pan-cafe);
+    color: #fff;
+}
+
+.btn-pan:hover {
+    background: #5e3714;
+    color: #fff;
+}
+
+.tarjeta-login {
+    max-width: 420px;
+}
+
+.tarjeta-menu {
+    transition: transform .15s;
+}
+
+.tarjeta-menu:hover {
+    transform: translateY(-3px);
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}

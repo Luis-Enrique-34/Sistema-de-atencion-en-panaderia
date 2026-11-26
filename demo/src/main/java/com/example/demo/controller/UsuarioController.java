@@ -1,21 +1,22 @@
 package com.example.demo.controller;
 
+import java.security.Principal;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.example.demo.model.Rol;
 import com.example.demo.model.Usuario;
+import com.example.demo.services.NegocioException;
 import com.example.demo.services.UsuarioService;
 
 import jakarta.validation.Valid;
 
 @Controller
+@RequestMapping("/admin/usuarios")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -24,69 +25,91 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
-    // LISTAR
-    @GetMapping("/usuarios")
-    public String listarUsuarios(Model model) {
-        model.addAttribute("listaUsuarios", usuarioService.listar());
-        return "lista";
+    @ModelAttribute("roles")
+    public Rol[] roles() {
+        return Rol.values();
     }
 
-    // FORMULARIO NUEVO
-    @GetMapping("/usuarios/nuevo")
-    public String mostrarFormularioNuevo(Model model) {
+    @GetMapping
+    public String listar(Model model) {
+        model.addAttribute("usuarios", usuarioService.listar());
+        return "usuarios/lista";
+    }
+
+    @GetMapping("/nuevo")
+    public String nuevo(Model model) {
         model.addAttribute("usuario", new Usuario());
-        return "formulario";
+        return "usuarios/formulario";
     }
 
-    // EDITAR: CARGAR DATOS EXISTENTES
-    @GetMapping("/usuarios/editar/{id}")
-    public String editarUsuario(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
-        Usuario usuario = usuarioService.obtenerPorId(id);
-        if (usuario == null) {
-            redirectAttributes.addFlashAttribute("error", "El usuario con ID " + id + " no existe.");
-            return "redirect:/usuarios";
+    @GetMapping("/editar/{id}")
+    public String editar(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+        try {
+            Usuario usuario = usuarioService.obtener(id);
+            usuario.setPassword(null);
+            model.addAttribute("usuario", usuario);
+            return "usuarios/formulario";
+        } catch (NegocioException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/usuarios";
         }
-        usuario.setPassword(null); // no se envía la contraseña al navegador
-        model.addAttribute("usuario", usuario);
-        return "formulario";
     }
 
-    // GUARDAR O ACTUALIZAR
-    @PostMapping("/usuarios/guardar")
-    public String guardarUsuario(@Valid @ModelAttribute("usuario") Usuario usuario,
-                                 BindingResult result,
-                                 RedirectAttributes redirectAttributes) {
+    @PostMapping("/guardar")
+    public String guardar(@Valid @ModelAttribute("usuario") Usuario usuario, BindingResult result,
+            Principal principal, RedirectAttributes redirect) {
 
-        boolean esNuevo = (usuario.getId() == null);
-
-        // Contraseña obligatoria solo al registrar
-        if (esNuevo && (usuario.getPassword() == null || usuario.getPassword().isBlank())) {
-            result.rejectValue("password", "requerido", "La contraseña es obligatoria");
-        }
-
-        // Correo único
         if (!result.hasFieldErrors("correo") && usuarioService.correoEnUso(usuario.getCorreo(), usuario.getId())) {
             result.rejectValue("correo", "duplicado", "Ese correo ya está registrado");
         }
 
-        if (result.hasErrors()) {
-            return "formulario"; // vuelve al formulario mostrando los errores
+        String password = usuario.getPassword();
+        boolean sinPassword = password == null || password.isBlank();
+        if (usuario.getId() == null && sinPassword) {
+            result.rejectValue("password", "requerida", "La contraseña es obligatoria");
+        } else if (!sinPassword && password.length() < 6) {
+            result.rejectValue("password", "corta", "Mínimo 6 caracteres");
         }
 
+        if (usuario.getId() != null && !result.hasFieldErrors("correo")) {
+            Usuario original = usuarioService.obtener(usuario.getId());
+            boolean esMiCuenta = original.getCorreo().equals(principal.getName());
+            boolean cambiaAlgoCritico = !usuario.isAdmin() || !usuario.isActivo()
+                    || !usuario.getCorreo().trim().equalsIgnoreCase(original.getCorreo());
+            if (esMiCuenta && cambiaAlgoCritico) {
+                result.reject("cuentaPropia", "En tu propia cuenta no puedes cambiar el rol, el correo ni desactivarte.");
+            }
+        }
+
+        if (result.hasErrors()) {
+            return "usuarios/formulario";
+        }
+
+        boolean esNuevo = usuario.getId() == null;
         usuarioService.guardar(usuario);
-        redirectAttributes.addFlashAttribute("mensaje",
-                esNuevo ? "Usuario registrado correctamente." : "Usuario actualizado correctamente.");
-        return "redirect:/usuarios";
+        redirect.addFlashAttribute("mensaje", esNuevo ? "Usuario registrado." : "Usuario actualizado.");
+        return "redirect:/admin/usuarios";
     }
 
-    // ELIMINAR (por POST, para que no se borre con solo abrir un enlace)
-    @PostMapping("/usuarios/eliminar/{id}")
-    public String eliminarUsuario(@PathVariable Long id, RedirectAttributes redirectAttributes) {
-        if (usuarioService.eliminar(id)) {
-            redirectAttributes.addFlashAttribute("mensaje", "Usuario eliminado correctamente.");
-        } else {
-            redirectAttributes.addFlashAttribute("error", "El usuario con ID " + id + " no existe.");
+    @PostMapping("/{id}/estado")
+    public String cambiarEstado(@PathVariable Long id, Principal principal, RedirectAttributes redirect) {
+        try {
+            usuarioService.cambiarEstado(id, principal.getName());
+            redirect.addFlashAttribute("mensaje", "Estado del usuario actualizado.");
+        } catch (NegocioException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/usuarios";
+        return "redirect:/admin/usuarios";
+    }
+
+    @PostMapping("/{id}/eliminar")
+    public String eliminar(@PathVariable Long id, Principal principal, RedirectAttributes redirect) {
+        try {
+            usuarioService.eliminar(id, principal.getName());
+            redirect.addFlashAttribute("mensaje", "Usuario eliminado.");
+        } catch (NegocioException e) {
+            redirect.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
     }
 }

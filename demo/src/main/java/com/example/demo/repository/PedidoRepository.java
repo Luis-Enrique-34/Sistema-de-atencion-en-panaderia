@@ -1,6 +1,7 @@
 package com.example.demo.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,14 +11,21 @@ import com.example.demo.model.Pedido;
 
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
-    // Trae cliente y producto en la misma consulta (evita N+1 consultas)
-    @EntityGraph(attributePaths = {"cliente", "producto"})
+    @EntityGraph(attributePaths = {"cliente", "detalles", "detalles.producto"})
     List<Pedido> findAllByOrderByIdDesc();
 
-    @EntityGraph(attributePaths = {"cliente", "producto"})
+    @EntityGraph(attributePaths = {"cliente", "detalles", "detalles.producto"})
     List<Pedido> findByEstadoOrderByIdDesc(EstadoPedido estado);
 
-    boolean existsByClienteId(Long clienteId);
+    @EntityGraph(attributePaths = {"cliente", "detalles", "detalles.producto"})
+    List<Pedido> findByClienteCorreoOrderByIdDesc(String correo);
 
-    boolean existsByProductoId(Long productoId);
+    @EntityGraph(attributePaths = {"cliente", "detalles", "detalles.producto"})
+    Optional<Pedido> findConDetallesById(Long id);
+
+    long countByEstado(EstadoPedido estado);
+
+    long countByClienteCorreo(String correo);
+
+    boolean existsByClienteId(Long clienteId);
 }

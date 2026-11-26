@@ -1,86 +1,92 @@
 package com.example.demo.controller;
 
-import java.util.List;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.example.demo.model.Categoria;
 import com.example.demo.model.Producto;
+import com.example.demo.services.CategoriaService;
 import com.example.demo.services.NegocioException;
 import com.example.demo.services.ProductoService;
 
 import jakarta.validation.Valid;
 
 @Controller
+@RequestMapping("/productos")
 public class ProductoController {
 
-    public static final List<String> CATEGORIAS = List.of("Panes", "Pastelería", "Bocaditos", "Bebidas");
+    private final ProductoService productoService;
+    private final CategoriaService categoriaService;
 
-    private final ProductoService service;
-
-    public ProductoController(ProductoService service) {
-        this.service = service;
+    public ProductoController(ProductoService productoService, CategoriaService categoriaService) {
+        this.productoService = productoService;
+        this.categoriaService = categoriaService;
     }
 
-    @GetMapping("/")
-    public String inicio() {
-        return "redirect:/productos";
-    }
-
-    @GetMapping("/productos")
+    @GetMapping
     public String listar(@RequestParam(required = false) String buscar, Model model) {
-        model.addAttribute("productos", service.listar(buscar));
+        model.addAttribute("productos", productoService.listar(buscar));
         model.addAttribute("buscar", buscar);
         return "productos/lista";
     }
 
-    @GetMapping("/productos/nuevo")
+    @GetMapping("/nuevo")
     public String nuevo(Model model) {
-        return formulario(new Producto(), model);
+        Producto producto = new Producto();
+        producto.setCategoria(new Categoria());
+        return mostrarFormulario(producto, model);
     }
 
-    @GetMapping("/productos/editar/{id}")
-    public String editar(@PathVariable Long id, Model model, RedirectAttributes ra) {
+    @GetMapping("/editar/{id}")
+    public String editar(@PathVariable Long id, Model model, RedirectAttributes redirect) {
         try {
-            return formulario(service.obtener(id), model);
+            return mostrarFormulario(productoService.obtener(id), model);
         } catch (NegocioException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            redirect.addFlashAttribute("error", e.getMessage());
             return "redirect:/productos";
         }
     }
 
-    @PostMapping("/productos/guardar")
+    @PostMapping("/guardar")
     public String guardar(@Valid @ModelAttribute("producto") Producto producto, BindingResult result,
-                          Model model, RedirectAttributes ra) {
-        if (!result.hasFieldErrors("nombre") && service.nombreEnUso(producto.getNombre(), producto.getId())) {
+            Model model, RedirectAttributes redirect) {
+
+        if (producto.getCategoria() == null || producto.getCategoria().getId() == null) {
+            result.rejectValue("categoria", "requerida", "Selecciona una categoría");
+        }
+        if (!result.hasFieldErrors("nombre") && productoService.nombreEnUso(producto.getNombre(), producto.getId())) {
             result.rejectValue("nombre", "duplicado", "Ya existe un producto con ese nombre");
         }
         if (result.hasErrors()) {
-            return formulario(producto, model);
+            if (producto.getCategoria() == null) {
+                producto.setCategoria(new Categoria());
+            }
+            return mostrarFormulario(producto, model);
         }
+
         boolean esNuevo = producto.getId() == null;
-        service.guardar(producto);
-        ra.addFlashAttribute("mensaje", esNuevo ? "Producto registrado." : "Producto actualizado.");
+        productoService.guardar(producto);
+        redirect.addFlashAttribute("mensaje", esNuevo ? "Producto registrado." : "Producto actualizado.");
         return "redirect:/productos";
     }
 
-    @PostMapping("/productos/eliminar/{id}")
-    public String eliminar(@PathVariable Long id, RedirectAttributes ra) {
+    @PostMapping("/{id}/eliminar")
+    public String eliminar(@PathVariable Long id, RedirectAttributes redirect) {
         try {
-            service.eliminar(id);
-            ra.addFlashAttribute("mensaje", "Producto eliminado.");
+            productoService.eliminar(id);
+            redirect.addFlashAttribute("mensaje", "Producto eliminado.");
         } catch (NegocioException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            redirect.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/productos";
     }
 
-    private String formulario(Producto producto, Model model) {
+    private String mostrarFormulario(Producto producto, Model model) {
         model.addAttribute("producto", producto);
-        model.addAttribute("categorias", CATEGORIAS);
+        model.addAttribute("categorias", categoriaService.listar());
         return "productos/formulario";
     }
 }

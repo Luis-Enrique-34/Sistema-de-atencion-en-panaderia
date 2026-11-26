@@ -8,11 +8,17 @@ import com.example.demo.model.Producto;
 
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
-    List<Producto> findAllByOrderByIdAsc();
+    List<Producto> findAllByOrderByCategoriaNombreAscNombreAsc();
 
-    List<Producto> findByNombreContainingIgnoreCaseOrderByIdAsc(String nombre);
+    List<Producto> findByNombreContainingIgnoreCaseOrderByNombreAsc(String nombre);
+
+    List<Producto> findByStockGreaterThanOrderByCategoriaNombreAscNombreAsc(Integer stock);
+
+    List<Producto> findByStockLessThanOrderByStockAsc(Integer stock);
 
     boolean existsByNombreIgnoreCase(String nombre);
 
     boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
+
+    boolean existsByCategoriaId(Long categoriaId);
 }

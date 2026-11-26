@@ -18,9 +18,9 @@ public class Producto {
     @Column(nullable = false, unique = true, length = 80)
     private String nombre;
 
-    @NotBlank(message = "Selecciona una categoría")
-    @Column(nullable = false, length = 40)
-    private String categoria;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "categoria_id", nullable = false)
+    private Categoria categoria;
 
     @NotNull(message = "El precio es obligatorio")
     @DecimalMin(value = "0.10", message = "El precio mínimo es S/ 0.10")
@@ -36,9 +36,10 @@ public class Producto {
     @Size(max = 255, message = "Máximo 255 caracteres")
     private String descripcion;
 
-    public Producto() {}
+    public Producto() {
+    }
 
-    public Producto(String nombre, String categoria, String precio, Integer stock, String descripcion) {
+    public Producto(String nombre, Categoria categoria, String precio, Integer stock, String descripcion) {
         this.nombre = nombre;
         this.categoria = categoria;
         this.precio = new BigDecimal(precio);
@@ -52,8 +53,8 @@ public class Producto {
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getCategoria() { return categoria; }
-    public void setCategoria(String categoria) { this.categoria = categoria; }
+    public Categoria getCategoria() { return categoria; }
+    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
 
     public BigDecimal getPrecio() { return precio; }
     public void setPrecio(BigDecimal precio) { this.precio = precio; }

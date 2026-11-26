@@ -1,123 +1,153 @@
 package com.example.demo.services;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.demo.dto.PedidoForm;
-import com.example.demo.model.Cliente;
+import com.example.demo.model.DetallePedido;
 import com.example.demo.model.EstadoPedido;
 import com.example.demo.model.Pedido;
 import com.example.demo.model.Producto;
-import com.example.demo.repository.ClienteRepository;
+import com.example.demo.model.Usuario;
 import com.example.demo.repository.PedidoRepository;
 import com.example.demo.repository.ProductoRepository;
+import com.example.demo.repository.UsuarioRepository;
 
 @Service
 public class PedidoService {
 
-    private final PedidoRepository repo;
-    private final ClienteRepository clienteRepo;
-    private final ProductoRepository productoRepo;
+    private final PedidoRepository pedidoRepository;
+    private final ProductoRepository productoRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public PedidoService(PedidoRepository repo, ClienteRepository clienteRepo, ProductoRepository productoRepo) {
-        this.repo = repo;
-        this.clienteRepo = clienteRepo;
-        this.productoRepo = productoRepo;
+    public PedidoService(PedidoRepository pedidoRepository, ProductoRepository productoRepository,
+            UsuarioRepository usuarioRepository) {
+        this.pedidoRepository = pedidoRepository;
+        this.productoRepository = productoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional(readOnly = true)
     public List<Pedido> listar(EstadoPedido estado) {
-        return (estado == null) ? repo.findAllByOrderByIdDesc() : repo.findByEstadoOrderByIdDesc(estado);
+        return estado == null
+                ? pedidoRepository.findAllByOrderByIdDesc()
+                : pedidoRepository.findByEstadoOrderByIdDesc(estado);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Pedido> listarDeCliente(String correo) {
+        return pedidoRepository.findByClienteCorreoOrderByIdDesc(correo);
+    }
+
+    @Transactional(readOnly = true)
+    public long contar(EstadoPedido estado) {
+        return pedidoRepository.countByEstado(estado);
+    }
+
+    @Transactional(readOnly = true)
+    public long contarDeCliente(String correo) {
+        return pedidoRepository.countByClienteCorreo(correo);
     }
 
     @Transactional(readOnly = true)
     public Pedido obtener(Long id) {
-        return repo.findById(id).orElseThrow(() -> new NegocioException("El pedido N° " + id + " no existe."));
+        return pedidoRepository.findConDetallesById(id)
+                .orElseThrow(() -> new NegocioException("El pedido N° " + id + " no existe."));
     }
 
-    // Convierte un pedido existente al formulario (para editar)
     @Transactional(readOnly = true)
-    public PedidoForm aFormulario(Long id) {
-        Pedido p = obtener(id);
-        if (!p.isPendiente()) throw new NegocioException("Solo se pueden editar pedidos PENDIENTES.");
-        PedidoForm f = new PedidoForm();
-        f.setId(p.getId());
-        f.setClienteId(p.getCliente().getId());
-        f.setProductoId(p.getProducto().getId());
-        f.setCantidad(p.getCantidad());
-        f.setObservacion(p.getObservacion());
-        return f;
+    public Pedido obtenerDeCliente(Long id, String correo) {
+        Pedido pedido = obtener(id);
+        if (!pedido.getCliente().getCorreo().equals(correo)) {
+            throw new NegocioException("El pedido N° " + id + " no existe.");
+        }
+        return pedido;
     }
 
-    // Genera una orden nueva o edita una pendiente, actualizando el stock
     @Transactional
-    public Pedido guardar(PedidoForm f) {
-        Cliente cliente = clienteRepo.findById(f.getClienteId())
-                .orElseThrow(() -> new NegocioException("El cliente seleccionado no existe."));
-        Producto producto = productoRepo.findById(f.getProductoId())
-                .orElseThrow(() -> new NegocioException("El producto seleccionado no existe."));
+    public Pedido crear(String correo, List<Long> productoIds, List<Integer> cantidades,
+            LocalDate fechaEntrega, String observaciones) {
 
-        Pedido p;
-        if (f.getId() == null) {
-            p = new Pedido();
-            p.setFecha(LocalDateTime.now());
-            p.setEstado(EstadoPedido.PENDIENTE);
-        } else {
-            p = obtener(f.getId());
-            if (!p.isPendiente()) throw new NegocioException("Solo se pueden editar pedidos PENDIENTES.");
-            devolverStock(p); // se devuelve lo reservado antes de recalcular
+        if (fechaEntrega == null || fechaEntrega.isBefore(LocalDate.now())) {
+            throw new NegocioException("Elige una fecha de entrega de hoy en adelante.");
         }
 
-        if (producto.getStock() < f.getCantidad()) {
-            // la excepción revierte toda la transacción (incluida la devolución de stock)
-            throw new NegocioException("Stock insuficiente de " + producto.getNombre()
-                    + ". Disponible: " + producto.getStock() + ".");
+        Usuario cliente = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new NegocioException("El cliente no existe."));
+
+        Pedido pedido = new Pedido();
+        pedido.setCliente(cliente);
+        pedido.setFecha(LocalDateTime.now());
+        pedido.setFechaEntrega(fechaEntrega);
+        pedido.setEstado(EstadoPedido.PENDIENTE);
+        pedido.setObservaciones(observaciones == null || observaciones.isBlank() ? null : observaciones.trim());
+
+        BigDecimal total = BigDecimal.ZERO;
+        if (productoIds != null && cantidades != null) {
+            for (int i = 0; i < productoIds.size() && i < cantidades.size(); i++) {
+                Integer cantidad = cantidades.get(i);
+                if (cantidad == null || cantidad <= 0) {
+                    continue;
+                }
+                Producto producto = productoRepository.findById(productoIds.get(i))
+                        .orElseThrow(() -> new NegocioException("Uno de los panes elegidos ya no existe."));
+                if (producto.getStock() < cantidad) {
+                    throw new NegocioException("Solo quedan " + producto.getStock() + " unidades de " + producto.getNombre() + ".");
+                }
+                producto.setStock(producto.getStock() - cantidad);
+
+                DetallePedido detalle = new DetallePedido(producto, cantidad);
+                pedido.agregarDetalle(detalle);
+                total = total.add(detalle.getSubtotal());
+            }
         }
-        producto.setStock(producto.getStock() - f.getCantidad());
 
-        p.setCliente(cliente);
-        p.setProducto(producto);
-        p.setCantidad(f.getCantidad());
-        p.setPrecioUnitario(producto.getPrecio());
-        p.setTotal(producto.getPrecio().multiply(BigDecimal.valueOf(f.getCantidad())));
-        p.setObservacion((f.getObservacion() == null || f.getObservacion().isBlank()) ? null : f.getObservacion().trim());
-        return repo.save(p);
-    }
-
-    @Transactional
-    public void entregar(Long id) {
-        Pedido p = obtenerPendiente(id);
-        p.setEstado(EstadoPedido.ENTREGADO);
-    }
-
-    @Transactional
-    public void anular(Long id) {
-        Pedido p = obtenerPendiente(id);
-        devolverStock(p);
-        p.setEstado(EstadoPedido.ANULADO);
-    }
-
-    @Transactional
-    public void eliminar(Long id) {
-        Pedido p = obtener(id);
-        if (p.isPendiente()) {
-            throw new NegocioException("Primero anula o entrega el pedido N° " + id + " antes de eliminarlo.");
+        if (pedido.getDetalles().isEmpty()) {
+            throw new NegocioException("Agrega al menos un tipo de pan a tu pedido.");
         }
-        repo.delete(p);
+
+        pedido.setTotal(total);
+        return pedidoRepository.save(pedido);
     }
 
-    private Pedido obtenerPendiente(Long id) {
-        Pedido p = obtener(id);
-        if (!p.isPendiente()) throw new NegocioException("El pedido N° " + id + " ya está " + p.getEstado() + ".");
-        return p;
+    @Transactional
+    public Pedido avanzarEstado(Long id) {
+        Pedido pedido = obtener(id);
+        EstadoPedido siguiente = pedido.getEstado().getSiguiente();
+        if (siguiente == null) {
+            throw new NegocioException("El pedido N° " + id + " ya está " + pedido.getEstado().getEtiqueta() + ".");
+        }
+        pedido.setEstado(siguiente);
+        return pedido;
     }
 
-    private void devolverStock(Pedido p) {
-        Producto prod = p.getProducto();
-        prod.setStock(prod.getStock() + p.getCantidad());
+    @Transactional
+    public void cancelar(Long id) {
+        Pedido pedido = obtener(id);
+        if (!pedido.isCancelable()) {
+            throw new NegocioException("El pedido N° " + id + " ya no se puede cancelar.");
+        }
+        devolverStock(pedido);
+    }
+
+    @Transactional
+    public void cancelarDeCliente(Long id, String correo) {
+        Pedido pedido = obtenerDeCliente(id, correo);
+        if (!pedido.isPendiente()) {
+            throw new NegocioException("Solo puedes cancelar pedidos pendientes. Este ya está " + pedido.getEstado().getEtiqueta() + ".");
+        }
+        devolverStock(pedido);
+    }
+
+    private void devolverStock(Pedido pedido) {
+        for (DetallePedido detalle : pedido.getDetalles()) {
+            Producto producto = detalle.getProducto();
+            producto.setStock(producto.getStock() + detalle.getCantidad());
+        }
+        pedido.setEstado(EstadoPedido.CANCELADO);
     }
 }

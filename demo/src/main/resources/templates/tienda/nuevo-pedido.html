@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Nuevo pedido')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: menu('nuevo')}"></nav>
+<main class="container py-4">
+    <h1 class="h4 mb-1">Arma tu pedido</h1>
+    <p class="text-muted">Escribe cuántas unidades quieres de cada pan. Puedes mezclar todos los tipos que quieras.</p>
+    <th:block th:replace="~{fragments/layout :: alertas}"></th:block>
+
+    <form th:action="@{/tienda/pedidos}" method="post">
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="table-responsive bg-white shadow-sm rounded">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                        <tr><th>Pan</th><th>Categoría</th><th class="text-end">Precio</th><th class="text-end">Disponible</th><th style="width: 130px">Cantidad</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p : ${productos}">
+                            <td>
+                                <span class="fw-semibold" th:text="${p.nombre}"></span>
+                                <div class="small text-muted" th:if="${p.descripcion}" th:text="${p.descripcion}"></div>
+                                <input type="hidden" name="productoId" th:value="${p.id}">
+                            </td>
+                            <td><span class="badge text-bg-secondary" th:text="${p.categoria.nombre}"></span></td>
+                            <td class="text-end" th:text="'S/ ' + ${#numbers.formatDecimal(p.precio, 1, 2, 'POINT')}"></td>
+                            <td class="text-end" th:text="${p.stock}"></td>
+                            <td>
+                                <input class="form-control cantidad" type="number" name="cantidad" value="0" min="0"
+                                       th:max="${p.stock}" th:attr="data-precio=${p.precio},data-nombre=${p.nombre}">
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(productos)}">
+                            <td colspan="5" class="text-center text-muted py-4">Por ahora no hay panes disponibles.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h2 class="h5">Resumen de tu mezcla</h2>
+                        <ul class="list-unstyled small mb-2" id="resumen">
+                            <li class="text-muted">Aún no eliges panes.</li>
+                        </ul>
+                        <div class="d-flex justify-content-between border-top pt-2 mb-3">
+                            <span>Total (<span id="totalPanes">0</span> panes)</span>
+                            <strong id="total">S/ 0.00</strong>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="fechaEntrega">Fecha de entrega</label>
+                            <input class="form-control" type="date" id="fechaEntrega" name="fechaEntrega"
+                                   th:value="${hoy}" th:min="${hoy}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="observaciones">Indicaciones (opcional)</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="2" maxlength="255"
+                                      placeholder="Ej.: bien tostados, recojo a las 7 a. m."></textarea>
+                        </div>
+                        <button class="btn btn-pan w-100" type="submit">Confirmar pedido</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+<script>
+    const campos = document.querySelectorAll('.cantidad');
+    const resumen = document.getElementById('resumen');
+
+    function actualizarResumen() {
+        let total = 0;
+        let panes = 0;
+        resumen.innerHTML = '';
+        campos.forEach(campo => {
+            const cantidad = parseInt(campo.value || '0', 10);
+            if (cantidad > 0) {
+                const subtotal = cantidad * parseFloat(campo.dataset.precio);
+                total += subtotal;
+                panes += cantidad;
+                const item = document.createElement('li');
+                item.textContent = cantidad + ' x ' + campo.dataset.nombre + ' = S/ ' + subtotal.toFixed(2);
+                resumen.appendChild(item);
+            }
+        });
+        if (panes === 0) {
+            resumen.innerHTML = '<li class="text-muted">Aún no eliges panes.</li>';
+        }
+        document.getElementById('total').textContent = 'S/ ' + total.toFixed(2);
+        document.getElementById('totalPanes').textContent = panes;
+    }
+
+    campos.forEach(campo => campo.addEventListener('input', actualizarResumen));
+</script>
+</body>
+</html>
