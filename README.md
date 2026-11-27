@@ -8,7 +8,7 @@ El cliente arma su pedido **mezclando varios tipos de pan**. El panadero lo prep
 
 ## 1. Cómo levantar el proyecto
 
-1. Abre **XAMPP** e inicia **MySQL** (puerto 3306). Si quieres usar phpMyAdmin, inicia también **Apache**.
+1. Abre **XAMPP** e inicia **MySQL** (puerto 3306). Para ver la base en phpMyAdmin inicia también **Apache** (phpMyAdmin es una página PHP que sirve Apache).
 2. Abre en VS Code la carpeta `demo` (la que contiene el `pom.xml`).
 3. Ejecuta `DemoApplication.java` con el botón **Run**, o en la terminal:
    ```
@@ -19,10 +19,12 @@ El cliente arma su pedido **mezclando varios tipos de pan**. El panadero lo prep
 Al arrancar, Spring Boot hace lo siguiente sin que tengas que tocar nada:
 
 - crea la base de datos **`panaderia_db`** (parámetro `createDatabaseIfNotExist=true`);
-- crea las **5 tablas** a partir de las clases `@Entity` (`spring.jpa.hibernate.ddl-auto=update`);
-- carga usuarios, categorías y panes de ejemplo (clase `DatosIniciales`).
+- ejecuta el script **`schema.sql`**, que crea las **5 tablas** (`CREATE TABLE IF NOT EXISTS`);
+- ejecuta el script **`data.sql`**, que carga usuarios, categorías y panes de ejemplo (`INSERT IGNORE`, no duplica).
 
-> El script `panaderia.sql` es opcional. Crea las mismas tablas y datos desde **phpMyAdmin → Importar**, por si te piden mostrarlas con SQL.
+Esto lo activa `spring.sql.init.mode=always`. Hibernate **no** crea tablas (`spring.jpa.hibernate.ddl-auto=none`): solo mapea las clases `@Entity` a las tablas que creó el script.
+
+> `panaderia.sql` junta los dos scripts e incluye `CREATE DATABASE`, por si quieres crear todo a mano desde **phpMyAdmin → Importar**.
 
 ### Usuarios de prueba
 
@@ -41,18 +43,20 @@ Cualquier persona también puede crear su propia cuenta de **cliente** desde la 
 ```
 demo/
 ├── pom.xml                        → dependencias (starters de Spring Boot)
-├── panaderia.sql                  → script opcional de la base de datos
+├── panaderia.sql                  → script completo para importar en phpMyAdmin (opcional)
 └── src/main/
     ├── java/com/example/demo/
     │   ├── DemoApplication.java   → punto de arranque (@SpringBootApplication)
-    │   ├── config/                → datos iniciales y usuario en sesión para el menú
+    │   ├── config/                → usuario en sesión para el menú
     │   ├── security/              → Spring Security: reglas de acceso, login y BCrypt
     │   ├── model/                 → entidades JPA (tablas) y enums
     │   ├── repository/            → acceso a datos (Spring Data JPA)
     │   ├── services/              → lógica de negocio (reglas, stock, estados)
     │   └── controller/            → controladores web (rutas y vistas)
     └── resources/
-        ├── application.properties → puerto, conexión a MySQL y JPA
+        ├── application.properties → puerto, conexión a MySQL, scripts SQL y JPA
+        ├── schema.sql             → script que crea las tablas
+        ├── data.sql               → script con los datos iniciales
         ├── static/css/            → estilos propios
         └── templates/             → vistas Thymeleaf (HTML)
             ├── fragments/         → menú, cabecera y alertas reutilizables
