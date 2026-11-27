@@ -12,7 +12,7 @@
             </div>
 
             <div class="alert alert-danger" th:if="${param.error}">Correo o contraseña incorrectos, o la cuenta está desactivada.</div>
-            <div class="alert alert-info" th:if="${param.salir}">Cerraste sesión correctamente.</div>
+            <div class="alert alert-info" th:if="${param.logout}">Cerraste sesión correctamente.</div>
             <th:block th:replace="~{fragments/layout :: alertas}"></th:block>
 
             <form th:action="@{/login}" method="post">

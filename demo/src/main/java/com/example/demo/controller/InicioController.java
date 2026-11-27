@@ -66,7 +66,12 @@ public class InicioController {
     }
 
     @GetMapping("/")
-    public String inicio(Principal principal, Model model) {
+    public String raiz() {
+        return "redirect:/menu";
+    }
+
+    @GetMapping("/menu")
+    public String menu(Principal principal, Model model) {
         Usuario usuario = usuarioService.buscarPorCorreo(principal.getName());
 
         if (usuario.isCliente()) {

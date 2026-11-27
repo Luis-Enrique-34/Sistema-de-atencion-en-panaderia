@@ -13,14 +13,14 @@
 
 <nav th:fragment="menu(activo)" class="navbar navbar-expand-lg navbar-dark navbar-pan no-print">
     <div class="container">
-        <a class="navbar-brand fw-bold" th:href="@{/}">🥖 El Buen Pan</a>
+        <a class="navbar-brand fw-bold" th:href="@{/menu}">🥖 El Buen Pan</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div id="menuPrincipal" class="collapse navbar-collapse" th:if="${usuarioActual != null}">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" th:classappend="${activo == 'inicio'} ? 'active'" th:href="@{/}">Inicio</a>
+                    <a class="nav-link" th:classappend="${activo == 'inicio'} ? 'active'" th:href="@{/menu}">Menú</a>
                 </li>
                 <th:block th:if="${usuarioActual.admin}">
                     <li class="nav-item">

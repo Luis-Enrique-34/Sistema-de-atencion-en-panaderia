@@ -14,7 +14,7 @@ El cliente arma su pedido **mezclando varios tipos de pan**. El panadero lo prep
    ```
    .\mvnw.cmd spring-boot:run
    ```
-4. Entra a **http://localhost:8084**.
+4. Entra a **http://localhost:8084** (te lleva al login y, al ingresar, al menú de tu perfil).
 
 Al arrancar, Spring Boot hace lo siguiente sin que tengas que tocar nada:
 
@@ -45,7 +45,8 @@ demo/
 └── src/main/
     ├── java/com/example/demo/
     │   ├── DemoApplication.java   → punto de arranque (@SpringBootApplication)
-    │   ├── config/                → configuración: seguridad, datos iniciales, usuario en sesión
+    │   ├── config/                → datos iniciales y usuario en sesión para el menú
+    │   ├── security/              → Spring Security: reglas de acceso, login y BCrypt
     │   ├── model/                 → entidades JPA (tablas) y enums
     │   ├── repository/            → acceso a datos (Spring Data JPA)
     │   ├── services/              → lógica de negocio (reglas, stock, estados)
@@ -149,7 +150,7 @@ PENDIENTE → EN PREPARACIÓN → LISTO → ENTREGADO
 | Ruta | Acceso | Descripción |
 |---|---|---|
 | `/login`, `/registro` | Público | Inicio de sesión y registro de clientes |
-| `/` | Autenticado | Panel de inicio según el perfil |
+| `/menu` | Autenticado | Menú principal según el perfil (a donde lleva el login) |
 | `/admin/usuarios/**` | ADMIN | CRUD de usuarios |
 | `/admin/categorias/**` | ADMIN | CRUD de categorías |
 | `/productos/**` | ADMIN, PANADERO | CRUD de panes |
@@ -183,12 +184,12 @@ PENDIENTE → EN PREPARACIÓN → LISTO → ENTREGADO
 - CRUD completo de usuarios, categorías y productos.
 
 ### Unidad 4 — Spring Security
-- **Autenticación** con formulario de login propio (`SeguridadConfig` → `formLogin`).
+- **Autenticación** con formulario de login propio (`security/SeguridadConfig` → `formLogin`, que redirige a `/menu`).
 - **Autorización por roles** con `hasRole` y `hasAnyRole` sobre las rutas.
-- `UserDetailsService` propio (`UsuarioDetallesService`) que busca al usuario por su correo en la base de datos.
+- `UserDetailsService` propio (`security/UsuarioDetallesService`) que busca al usuario por su correo en la base de datos.
 - **Contraseñas cifradas con BCrypt**: nunca se guardan en texto plano.
 - **Protección CSRF**: Thymeleaf agrega el token automáticamente en los formularios `POST`.
-- Cierre de sesión (`/logout`), página de acceso denegado y cuentas activas o inactivas.
+- Cierre de sesión (`/logout` → `/login?logout`), página de acceso denegado y cuentas activas o inactivas.
 - El menú cambia según el perfil gracias a `UsuarioActualAdvice` (`@ControllerAdvice`).
 
 ---
